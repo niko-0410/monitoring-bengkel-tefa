@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monitoring Sistem Bengkel TEFA</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="app-container">
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <div class="logo-icon">&#9881;</div>
+                    <h2>BENGKEL TEFA</h2>
+                    <p>Monitoring Sistem</p>
+                </div>
+            </div>
+            <ul class="nav-menu">
+                <li class="nav-item active" data-page="dashboard">
+                    <span class="nav-icon">&#9632;</span>
+                    <span class="nav-text">Dashboard</span>
+                </li>
+                <li class="nav-item" data-page="apd">
+                    <span class="nav-icon">&#9730;</span>
+                    <span class="nav-text">Kelengkapan APD</span>
+                </li>
+                <li class="nav-item" data-page="safety-area">
+                    <span class="nav-icon">&#9888;</span>
+                    <span class="nav-text">Safety Area</span>
+                </li>
+            </ul>
+            <div class="sidebar-footer">
+                <p>Sistem Monitoring Keselamatan</p>
+            </div>
+        </nav>
+
+        <main class="main-content">
+            <header class="top-bar">
+                <div class="top-bar-left">
+                    <h1 id="page-title">Dashboard</h1>
+                </div>
+                <div class="top-bar-right">
+                    <div class="system-status">
+                        <span class="status-dot online"></span>
+                        <span>Sistem Aktif</span>
+                    </div>
+                    <div class="current-time" id="current-time"></div>
+                </div>
+            </header>
+
+            <div class="content-area">
+                <!-- DASHBOARD -->
+                <div class="page active" id="page-dashboard">
+                    <div class="dashboard-grid">
+                        <div class="stat-card apd-stat">
+                            <div class="stat-icon">&#9730;</div>
+                            <div class="stat-info">
+                                <h3>Kelengkapan APD</h3>
+                                <div class="stat-value" id="stat-apd">-</div>
+                                <p>Status Terakhir</p>
+                            </div>
+                        </div>
+                        <div class="stat-card safety-stat">
+                            <div class="stat-icon">&#9888;</div>
+                            <div class="stat-info">
+                                <h3>Safety Area</h3>
+                                <div class="stat-value" id="stat-area">Aman</div>
+                                <p>Status Area Bengkel</p>
+                            </div>
+                        </div>
+                        <div class="stat-card alarm-stat">
+                            <div class="stat-icon">&#128276;</div>
+                            <div class="stat-info">
+                                <h3>Total Alarm</h3>
+                                <div class="stat-value" id="stat-alarm">0</div>
+                                <p>Alarm Hari Ini</p>
+                            </div>
+                        </div>
+                        <div class="stat-card log-stat">
+                            <div class="stat-icon">&#128196;</div>
+                            <div class="stat-info">
+                                <h3>Log Aktivitas</h3>
+                                <div class="stat-value" id="stat-log">0</div>
+                                <p>Entri Hari Ini</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-panels">
+                        <div class="panel">
+                            <div class="panel-header">
+                                <h3>Status Real-Time APD</h3>
+                                <span class="panel-badge" id="apd-badge">Menunggu</span>
+                            </div>
+                            <div class="panel-body">
+                                <div class="apd-status-grid">
+                                    <div class="apd-item" id="dash-helm">
+                                        <div class="apd-item-icon">&#128737;</div>
+                                        <span>Helm Safety</span>
+                                        <span class="apd-status not-detected">-</span>
+                                    </div>
+                                    <div class="apd-item" id="dash-sepatu">
+                                        <div class="apd-item-icon">&#128098;</div>
+                                        <span>Sepatu Safety</span>
+                                        <span class="apd-status not-detected">-</span>
+                                    </div>
+                                    <div class="apd-item" id="dash-sarung">
+                                        <div class="apd-item-icon">&#129348;</div>
+                                        <span>Sarung Tangan</span>
+                                        <span class="apd-status not-detected">-</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="panel">
+                            <div class="panel-header">
+                                <h3>Status Safety Area</h3>
+                                <span class="panel-badge safe" id="area-badge">Aman</span>
+                            </div>
+                            <div class="panel-body">
+                                <div class="area-status-display">
+                                    <div class="area-indicator" id="dash-area-indicator">
+                                        <div class="indicator-light green"></div>
+                                        <span>Menunggu aktivasi kamera</span>
+                                    </div>
+                                    <div class="area-info">
+                                        <p>Jarak minimum: <strong>1 meter</strong></p>
+                                        <p>Status alarm: <strong id="dash-alarm-status">Normal</strong></p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="panel full-width">
+                        <div class="panel-header">
+                            <h3>Riwayat Monitoring Terbaru</h3>
+                        </div>
+                        <div class="panel-body">
+                            <div class="table-container">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Waktu</th>
+                                            <th>Fitur</th>
+                                            <th>Status</th>
+                                            <th>Keterangan</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="dashboard-log-body">
+                                        <tr><td colspan="4" class="empty-state">Belum ada aktivitas</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-panels">
+                        <div class="panel">
+                            <div class="panel-header">
+                                <h3>Informasi Hardware &amp; Model</h3>
+                            </div>
+                            <div class="panel-body">
+                                <div class="model-info-grid">
+                                    <div class="model-item">
+                                        <span class="model-label">Kamera:</span>
+                                        <span class="model-value">HP True Vision FHD Camera</span>
+                                    </div>
+                                    <div class="model-item">
+                                        <span class="model-label">Buzzer:</span>
+                                        <span class="model-value">PC Speaker (winsound)</span>
+                                    </div>
+                                    <div class="model-item">
+                                        <span class="model-label">Detection Model:</span>
+                                        <span class="model-value" id="model-apd">YOLOv8n Custom (Roboflow)</span>
+                                    </div>
+                                    <div class="model-item">
+                                        <span class="model-label">Kelas:</span>
+                                        <span class="model-value">helm safety, sarung tangan, sepatu safety</span>
+                                    </div>
+                                    <div class="model-item">
+                                        <span class="model-label">Training Data:</span>
+                                        <span class="model-value">9 gambar Roboflow Dataset</span>
+                                    </div>
+                                    <div class="model-item">
+                                        <span class="model-label">Metode:</span>
+                                        <span class="model-value">YOLOv8 Object Detection langsung</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="panel">
+                            <div class="panel-header">
+                                <h3>YOLOv8 Custom Training</h3>
+                            </div>
+                            <div class="panel-body">
+                                <div class="training-steps">
+                                    <div class="step">
+                                        <span class="step-num">&#129418;</span>
+                                        <div class="step-content">
+                                            <strong>YOLOv8n Object Detection</strong>
+                                            <code>apd_custom_best.pt (Roboflow)</code>
+                                        </div>
+                                    </div>
+                                    <div class="step">
+                                        <span class="step-num">&#128196;</span>
+                                        <div class="step-content">
+                                            <strong>4 Kelas Deteksi</strong>
+                                            alat pelindung diri, helm, sarung tangan, sepatu
+                                        </div>
+                                    </div>
+                                    <div class="step">
+                                        <span class="step-num">&#9889;</span>
+                                        <div class="step-content">
+                                            <strong>Single Pass Inference</strong>
+                                            Deteksi semua APD dalam satu forward pass
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- APD PAGE -->
+                <div class="page" id="page-apd">
+                    <div class="page-grid">
+                        <div class="camera-section">
+                            <div class="panel">
+                                <div class="panel-header">
+                                    <h3>HP True Vision FHD - Deteksi APD</h3>
+                                    <div class="camera-controls">
+                                        <select id="apd-camera-select" class="form-select">
+                                            <option value="0">HP True Vision FHD Camera</option>
+                                        </select>
+                                        <button class="btn btn-primary" id="btn-start-apd">Mulai</button>
+                                        <button class="btn btn-danger" id="btn-stop-apd" disabled>Stop</button>
+                                    </div>
+                                </div>
+                                <div class="panel-body camera-panel">
+                                    <div class="camera-container">
+                                        <img id="apd-video" src="" alt="APD Camera">
+                                        <div class="camera-overlay" id="apd-overlay">
+                                            <p>HP True Vision FHD Camera</p>
+                                            <p>Klik "Mulai" untuk deteksi APD</p>
+                                        </div>
+                                    </div>
+                                    <div class="hw-info">
+                                        <span>&#128247; HP True Vision FHD Camera</span>
+                                        <span id="apd-buzzer-status">&#128276; Buzzer: Siap</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="detection-section">
+                            <div class="panel">
+                                <div class="panel-header">
+                                    <h3>Hasil Deteksi APD</h3>
+                                </div>
+                                <div class="panel-body">
+                                    <div class="big-indicator">
+                                        <div class="indicator-circle standby" id="apd-indicator-circle">
+                                            <span class="indicator-text" id="apd-indicator-text">STANDBY</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="apd-checklist">
+                                        <h4>Status Kelengkapan APD:</h4>
+                                        <div class="check-item" id="check-helm">
+                                            <div class="check-icon" id="helm-icon">&#10060;</div>
+                                            <span class="check-label">Helm Safety</span>
+                                            <span class="check-status" id="helm-status">Belum Terdeteksi</span>
+                                        </div>
+                                        <div class="check-item" id="check-sepatu">
+                                            <div class="check-icon" id="sepatu-icon">&#10060;</div>
+                                            <span class="check-label">Sepatu Safety</span>
+                                            <span class="check-status" id="sepatu-status">Belum Terdeteksi</span>
+                                        </div>
+                                        <div class="check-item" id="check-sarung">
+                                            <div class="check-icon" id="sarung-icon">&#10060;</div>
+                                            <span class="check-label">Sarung Tangan</span>
+                                            <span class="check-status" id="sarung-status">Belum Terdeteksi</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="alarm-panel">
+                                        <h4>Panel Alarm &amp; Indikator:</h4>
+                                        <div class="alarm-indicators">
+                                            <div class="lamp-indicator">
+                                                <div class="lamp red" id="apd-lamp-red"></div>
+                                                <span>Bahaya</span>
+                                            </div>
+                                            <div class="lamp-indicator">
+                                                <div class="lamp yellow" id="apd-lamp-yellow"></div>
+                                                <span>Peringatan</span>
+                                            </div>
+                                            <div class="lamp-indicator">
+                                                <div class="lamp green" id="apd-lamp-green"></div>
+                                                <span>Aman</span>
+                                            </div>
+                                        </div>
+                                        <div class="buzzer-test">
+                                            <button class="btn btn-secondary" id="btn-test-buzzer-apd">Test Buzzer</button>
+                                            <span class="buzzer-label">Buzzer bawaan laptop (PC speaker)</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="panel">
+                                <div class="panel-header">
+                                    <h3>Pengaturan Telegram</h3>
+                                </div>
+                                <div class="panel-body">
+                                    <div class="form-group">
+                                        <label>Bot Token:</label>
+                                        <input type="text" id="tg-bot-token-apd" placeholder="Masukkan Bot Token Telegram" class="form-input">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Chat ID:</label>
+                                        <input type="text" id="tg-chat-id-apd" placeholder="Masukkan Chat ID" class="form-input">
+                                    </div>
+                                    <div class="btn-group">
+                                        <button class="btn btn-primary" id="btn-save-tg-apd">Simpan</button>
+                                        <button class="btn btn-secondary" id="btn-test-tg-apd">Test Kirim</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="panel full-width">
+                        <div class="panel-header">
+                            <h3>Riwayat Deteksi APD</h3>
+                            <button class="btn btn-secondary" id="btn-clear-apd-log">Hapus Riwayat</button>
+                        </div>
+                        <div class="panel-body">
+                            <div class="table-container">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Waktu</th>
+                                            <th>Helm</th>
+                                            <th>Sepatu</th>
+                                            <th>Sarung Tangan</th>
+                                            <th>Status</th>
+                                            <th>Keterangan</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="apd-log-body">
+                                        <tr><td colspan="6" class="empty-state">Belum ada riwayat deteksi</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SAFETY AREA PAGE -->
+                <div class="page" id="page-safety-area">
+                    <div class="page-grid">
+                        <div class="camera-section">
+                            <div class="panel">
+                                <div class="panel-header">
+                                    <h3>HP True Vision FHD - Safety Area</h3>
+                                    <div class="camera-controls">
+                                        <select id="area-camera-select" class="form-select">
+                                            <option value="0">HP True Vision FHD Camera</option>
+                                        </select>
+                                        <button class="btn btn-primary" id="btn-start-area">Mulai</button>
+                                        <button class="btn btn-danger" id="btn-stop-area" disabled>Stop</button>
+                                    </div>
+                                </div>
+                                <div class="panel-body camera-panel">
+                                    <div class="camera-container">
+                                        <img id="area-video" src="" alt="Area Camera">
+                                        <div class="camera-overlay" id="area-overlay">
+                                            <p>HP True Vision FHD Camera</p>
+                                            <p>Klik "Mulai" untuk monitoring area</p>
+                                        </div>
+                                    </div>
+                                    <div class="zone-controls-bar">
+                                        <button class="btn btn-primary" id="btn-set-zone">Atur Area Terlarang</button>
+                                        <button class="btn btn-secondary" id="btn-reset-zone">Reset Area</button>
+                                        <span class="zone-hint" id="zone-hint">Klik pada kamera untuk menggambar area</span>
+                                    </div>
+                                    <div class="hw-info">
+                                        <span>&#128247; HP True Vision FHD Camera</span>
+                                        <span id="area-buzzer-status">&#128276; Buzzer: Siap</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="detection-section">
+                            <div class="panel">
+                                <div class="panel-header">
+                                    <h3>Status Safety Area</h3>
+                                </div>
+                                <div class="panel-body">
+                                    <div class="big-indicator">
+                                        <div class="indicator-circle standby" id="area-indicator-circle">
+                                            <span class="indicator-text" id="area-indicator-text">STANDBY</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="area-monitor">
+                                        <h4>Area Terlarang:</h4>
+                                        <div class="zone-info">
+                                            <p>Status Zona: <strong id="zone-status">Belum diatur</strong></p>
+                                            <p>Jarak Minimum: <strong>1 meter</strong></p>
+                                            <p>Objek Terdeteksi: <strong id="obj-distance">-</strong></p>
+                                        </div>
+                                    </div>
+
+                                    <div class="alarm-panel">
+                                        <h4>Panel Alarm &amp; Indikator:</h4>
+                                        <div class="alarm-indicators">
+                                            <div class="lamp-indicator">
+                                                <div class="lamp red" id="area-lamp-red"></div>
+                                                <span>Bahaya</span>
+                                            </div>
+                                            <div class="lamp-indicator">
+                                                <div class="lamp yellow" id="area-lamp-yellow"></div>
+                                                <span>Peringatan</span>
+                                            </div>
+                                            <div class="lamp-indicator">
+                                                <div class="lamp green" id="area-lamp-green"></div>
+                                                <span>Aman</span>
+                                            </div>
+                                        </div>
+                                        <div class="buzzer-test">
+                                            <button class="btn btn-secondary" id="btn-test-buzzer-area">Test Buzzer</button>
+                                            <span class="buzzer-label">Buzzer bawaan laptop (PC speaker)</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="panel">
+                                <div class="panel-header">
+                                    <h3>Pengaturan Telegram</h3>
+                                </div>
+                                <div class="panel-body">
+                                    <div class="form-group">
+                                        <label>Bot Token:</label>
+                                        <input type="text" id="tg-bot-token-area" placeholder="Masukkan Bot Token Telegram" class="form-input">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Chat ID:</label>
+                                        <input type="text" id="tg-chat-id-area" placeholder="Masukkan Chat ID" class="form-input">
+                                    </div>
+                                    <div class="btn-group">
+                                        <button class="btn btn-primary" id="btn-save-tg-area">Simpan</button>
+                                        <button class="btn btn-secondary" id="btn-test-tg-area">Test Kirim</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="panel full-width">
+                        <div class="panel-header">
+                            <h3>Riwayat Safety Area</h3>
+                            <button class="btn btn-secondary" id="btn-clear-area-log">Hapus Riwayat</button>
+                        </div>
+                        <div class="panel-body">
+                            <div class="table-container">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Waktu</th>
+                                            <th>Status</th>
+                                            <th>Jarak</th>
+                                            <th>Keterangan</th>
+                                            <th>Notifikasi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="area-log-body">
+                                        <tr><td colspan="5" class="empty-state">Belum ada riwayat monitoring</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div class="notification-toast" id="notification-toast">
+        <div class="toast-icon"></div>
+        <div class="toast-message"></div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

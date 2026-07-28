@@ -1,0 +1,11 @@
+flask
+ultralytics
+opencv-python
+numpy
+requests
+pillow
+torch
+pandas
+seaborn
+scipy
+gitpython
