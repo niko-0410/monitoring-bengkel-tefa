@@ -17,4 +17,8 @@ pip install -r requirements.txt
 python app.py
 ```
 
+```linux
+source .venv/bin/activate
+```
+
 Buka http://localhost:5000
