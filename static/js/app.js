@@ -113,13 +113,20 @@ const App = {
     },
 
     updateAPDUI(s) {
-        this.updateCheckItem('helm', s.helm);
-        this.updateCheckItem('sepatu', s.sepatu);
-        this.updateCheckItem('sarung', s.sarungtangan);
+        const container = document.getElementById('apd-check-items');
+        const items = s.items || {};
+        container.innerHTML = '';
+        for (const [name, detected] of Object.entries(items)) {
+            const div = document.createElement('div');
+            div.className = 'check-item' + (detected ? ' safe' : '');
+            div.innerHTML = '<div class="check-icon">' + (detected ? '&#10004;' : '&#10060;') + '</div>'
+                + '<span class="check-label">' + name + '</span>'
+                + '<span class="check-status' + (detected ? ' status-detected' : '') + '">'
+                + (detected ? 'Terdeteksi' : 'Belum Terdeteksi') + '</span>';
+            container.appendChild(div);
+        }
 
-        this.updateDashAPD('dash-helm', s.helm);
-        this.updateDashAPD('dash-sepatu', s.sepatu);
-        this.updateDashAPD('dash-sarung', s.sarungtangan);
+        this.updateDashAPD(s);
 
         const circle = document.getElementById('apd-indicator-circle');
         const text = document.getElementById('apd-indicator-text');
@@ -134,7 +141,7 @@ const App = {
             badge.className = 'panel-badge safe';
             statEl.textContent = 'Lengkap';
             statEl.className = 'status-safe';
-        } else if (s.helm || s.sepatu || s.sarungtangan) {
+        } else if (Object.values(items).some(v => v)) {
             circle.className = 'indicator-circle danger';
             text.textContent = 'TIDAK AMAN';
             this.setLamp('apd', 'red');
@@ -150,45 +157,38 @@ const App = {
     },
 
     resetAPDUI() {
-        ['helm', 'sepatu', 'sarung'].forEach(item => {
-            const el = document.getElementById(`check-${item}`);
-            el.className = 'check-item';
-            document.getElementById(`${item}-icon`).innerHTML = '&#10060;';
-            const st = document.getElementById(`${item}-status`);
-            st.textContent = 'Belum Terdeteksi';
-            st.className = 'check-status';
-        });
+        document.getElementById('apd-check-items').innerHTML = '';
         document.getElementById('apd-indicator-circle').className = 'indicator-circle standby';
         document.getElementById('apd-indicator-text').textContent = 'STANDBY';
         document.getElementById('apd-badge').textContent = 'Menunggu';
         document.getElementById('apd-badge').className = 'panel-badge';
         document.getElementById('stat-apd').textContent = '-';
         this.setLamp('apd', 'none');
+        this.resetDashAPD();
     },
 
-    updateCheckItem(item, detected) {
-        const el = document.getElementById(`check-${item}`);
-        const icon = document.getElementById(`${item}-icon`);
-        const st = document.getElementById(`${item}-status`);
-        if (detected) {
-            el.className = 'check-item safe';
-            icon.innerHTML = '&#9989;';
-            st.textContent = 'Terdeteksi';
-            st.className = 'check-status safe';
-        } else {
-            el.className = 'check-item unsafe';
-            icon.innerHTML = '&#10060;';
-            st.textContent = 'Tidak Terdeteksi';
-            st.className = 'check-status unsafe';
+    updateDashAPD(s) {
+        const items = s.items || {};
+        const keys = Object.keys(items);
+        const targetIds = ['dash-helm', 'dash-sepatu', 'dash-sarung'];
+        for (let i = 0; i < targetIds.length; i++) {
+            const el = document.getElementById(targetIds[i]);
+            if (!el) continue;
+            const name = keys[i];
+            if (name && items.hasOwnProperty(name)) {
+                el.classList.toggle('active', !!items[name]);
+                el.querySelector('.dash-label').textContent = name;
+            } else {
+                el.classList.remove('active');
+            }
         }
     },
 
-    updateDashAPD(id, detected) {
-        const el = document.getElementById(id);
-        if (!el) return;
-        const s = el.querySelector('.apd-status');
-        s.textContent = detected ? 'Terdeteksi' : 'Tidak Terdeteksi';
-        s.className = detected ? 'apd-status detected' : 'apd-status not-detected';
+    resetDashAPD() {
+        ['dash-helm', 'dash-sepatu', 'dash-sarung'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.classList.remove('active');
+        });
     },
 
     async clearAPDLogs() {

@@ -235,7 +235,8 @@
                                             <option value="0">HP True Vision FHD Camera</option>
                                         </select>
                                         <select id="apd-mode-select" class="form-select">
-                                            <option value="model">YOLO Model</option>
+                                            <option value="model_3class">YOLO 3-class (Custom)</option>
+                                            <option value="model_6class">YOLO 6-class (PPE)</option>
                                             <option value="algorithm">Algoritma CV</option>
                                         </select>
                                         <button class="btn btn-primary" id="btn-start-apd">Mulai</button>
@@ -272,21 +273,7 @@
 
                                     <div class="apd-checklist">
                                         <h4>Status Kelengkapan APD:</h4>
-                                        <div class="check-item" id="check-helm">
-                                            <div class="check-icon" id="helm-icon">&#10060;</div>
-                                            <span class="check-label">Helm Safety</span>
-                                            <span class="check-status" id="helm-status">Belum Terdeteksi</span>
-                                        </div>
-                                        <div class="check-item" id="check-sepatu">
-                                            <div class="check-icon" id="sepatu-icon">&#10060;</div>
-                                            <span class="check-label">Sepatu Safety</span>
-                                            <span class="check-status" id="sepatu-status">Belum Terdeteksi</span>
-                                        </div>
-                                        <div class="check-item" id="check-sarung">
-                                            <div class="check-icon" id="sarung-icon">&#10060;</div>
-                                            <span class="check-label">Sarung Tangan</span>
-                                            <span class="check-status" id="sarung-status">Belum Terdeteksi</span>
-                                        </div>
+                                        <div id="apd-check-items"></div>
                                     </div>
 
                                     <div class="alarm-panel">

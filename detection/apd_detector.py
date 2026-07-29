@@ -85,35 +85,40 @@ class BuzzerAlarm:
 
 class APDDetector:
     """
-    Deteksi APD menggunakan YOLOv8 custom model (Roboflow 3-class dataset).
-    Model mendeteksi langsung:
-      - class 0: Helm Safety
-      - class 1: sarung tangan safety
-      - class 2: sepatu safety
+    Deteksi APD dengan 3 mode:
+      - model_3class: YOLO custom 3-class (Helm, Sarung Tangan, Sepatu)
+      - model_6class: YOLO PPE 6-class (Gloves, Vest, goggles, helmet, mask, safety_shoe)
+      - algorithm:   CV color-based detection
     """
 
-    CLASS_NAMES = {
-        0: 'Helm Safety',
-        1: 'sarung tangan safety',
-        2: 'sepatu safety',
+    MODEL_CONFIGS = {
+        'model_3class': {
+            'class_names': {0: 'Helm Safety', 1: 'sarung tangan safety', 2: 'sepatu safety'},
+            'class_colors': {0: (0, 255, 0), 1: (0, 200, 255), 2: (255, 165, 0)},
+            'required_classes': [0, 1, 2],
+            'model_path': 'models/apd_custom_best.pt',
+            'label': 'YOLO 3-class (Custom)',
+        },
+        'model_6class': {
+            'class_names': {0: 'Gloves', 1: 'Vest', 2: 'goggles', 3: 'helmet', 4: 'mask', 5: 'safety_shoe'},
+            'class_colors': {0: (0, 255, 0), 1: (0, 200, 255), 2: (0, 200, 255), 3: (0, 255, 0), 4: (0, 200, 255), 5: (0, 200, 255)},
+            'required_classes': [0, 3],
+            'model_path': 'models/ppe_6class.onnx',
+            'label': 'YOLO 6-class (PPE)',
+        },
     }
-
-    CLASS_COLORS = {
-        0: (0, 255, 0),
-        1: (0, 200, 255),
-        2: (255, 165, 0),
-    }
-
-    REQUIRED_CLASSES = [0, 1, 2]
 
     def __init__(self):
         self.model = None
         self.models_loaded = False
-        self.confidence_threshold = 0.15
+        self.confidence_threshold = 0.45
         self.cap = None
         self.is_running = False
         self.camera_id = 0
-        self.detection_mode = 'model'
+        self.detection_mode = 'model_3class'
+        self.class_names = {}
+        self.class_colors = {}
+        self.required_classes = []
         self.buzzer = BuzzerAlarm()
         self._safety_beep_given = False
         self._capture_thread = None
@@ -122,12 +127,22 @@ class APDDetector:
         self._latest_jpeg = None
         self._latest_status = None
         self.last_result = {
-            'helm': False,
-            'sepatu': False,
-            'sarungtangan': False,
+            'items': {},
             'detections': [],
             'timestamp': None
         }
+        self._init_model_config('model_3class')
+
+    def _init_model_config(self, mode):
+        if mode in self.MODEL_CONFIGS:
+            cfg = self.MODEL_CONFIGS[mode]
+            self.class_names = cfg['class_names'].copy()
+            self.class_colors = cfg['class_colors'].copy()
+            self.required_classes = cfg['required_classes'].copy()
+        else:
+            self.class_names = {}
+            self.class_colors = {}
+            self.required_classes = []
 
     @staticmethod
     def _enhance_brightness(frame):
@@ -213,10 +228,9 @@ class APDDetector:
                         cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 200, 255), 2)
             detections.append({'class': 'sarung tangan safety', 'confidence': 0.6, 'bbox': [0, 0, 0, 0], 'required': True})
 
+        th = 0.5
         self.last_result = {
-            'helm': helm_found and helm_conf >= 0.95,
-            'sepatu': sepatu_found and sepatu_conf >= 0.95,
-            'sarungtangan': sarung_found and sarung_conf >= 0.95,
+            'items': {'Helm Safety': helm_found and helm_conf >= th, 'sepatu safety': sepatu_found and sepatu_conf >= th, 'sarung tangan safety': sarung_found and sarung_conf >= th},
             'detections': detections,
             'timestamp': time.time()
         }
@@ -237,14 +251,14 @@ class APDDetector:
                 continue
             for box in boxes:
                 cls_id = int(box.cls[0])
-                if cls_id not in self.CLASS_NAMES:
+                if cls_id not in self.class_names:
                     continue
                 conf = float(box.conf[0])
                 x1, y1, x2, y2 = map(int, box.xyxy[0])
 
-                is_required = cls_id in self.REQUIRED_CLASSES
-                color = self.CLASS_COLORS.get(cls_id, (0, 255, 0))
-                label = self.CLASS_NAMES[cls_id]
+                is_required = cls_id in self.required_classes
+                color = self.class_colors.get(cls_id, (0, 255, 0))
+                label = self.class_names[cls_id]
 
                 cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
                 cv2.putText(frame, f"{label} {conf:.0%}", (x1, y1 - 10),
@@ -264,14 +278,17 @@ class APDDetector:
                         class_confidences[cls_id] = conf
 
         confidence_threshold = 0.95
-        helm_found = 0 in detected_classes and class_confidences.get(0, 0) >= confidence_threshold
-        sepatu_found = 2 in detected_classes and class_confidences.get(2, 0) >= confidence_threshold
-        sarungtangan_found = 1 in detected_classes and class_confidences.get(1, 0) >= confidence_threshold
+        items = {}
+        for cls_id in self.class_names:
+            name = self.class_names[cls_id]
+            is_req = cls_id in self.required_classes
+            if is_req:
+                items[name] = cls_id in detected_classes and class_confidences.get(cls_id, 0) >= confidence_threshold
+            else:
+                items[name] = cls_id in detected_classes
 
         self.last_result = {
-            'helm': helm_found,
-            'sepatu': sepatu_found,
-            'sarungtangan': sarungtangan_found,
+            'items': items,
             'detections': detections,
             'timestamp': time.time()
         }
@@ -279,66 +296,100 @@ class APDDetector:
         self._handle_buzzer()
         return {'frame': frame, 'result': self.last_result}
 
-    def load_model(self):
-        if self.models_loaded:
+    def _get_mode_label(self):
+        if self.detection_mode == 'algorithm':
+            return 'Algoritma CV'
+        cfg = self.MODEL_CONFIGS.get(self.detection_mode, {})
+        return cfg.get('label', 'Model')
+
+    def load_model(self, mode='model_3class'):
+        if self.models_loaded and self.detection_mode == mode:
             return True
+        self.models_loaded = False
+        self.model = None
+        self.detection_mode = mode
+        self._init_model_config(mode)
+        cfg = self.MODEL_CONFIGS.get(mode)
+        if not cfg:
+            return False
+        model_path = cfg['model_path']
         try:
-            model_path = 'models/apd_custom_best.pt'
             if not os.path.exists(model_path):
-                print(f"[APD] Model not found at {model_path}, falling back to yolov8n.pt")
-                model_path = 'models/yolov8n.pt'
-            self.model = YOLO(model_path)
+                print(f"[APD] Model not found at {model_path}")
+                return False
+            task = 'detect' if model_path.endswith('.onnx') else None
+            self.model = YOLO(model_path, task=task)
             self.models_loaded = True
-            print(f"[APD] Custom APD model loaded: {model_path}")
+            print(f"[APD] {cfg['label']} loaded: {model_path}")
             return True
         except Exception as e:
             print(f"[APD] Model load error: {e}")
             return False
 
     @staticmethod
-    def _get_camera_name(index):
+    def _get_camera_names_windows():
+        import subprocess, json, re
+        ps_script = '$devices = Get-PnpDevice -Class Camera,Image -Status OK; $devices | ForEach-Object { [PSCustomObject]@{Name=$_.FriendlyName; ID=$_.InstanceID} } | ConvertTo-Json -Compress'
         try:
-            import subprocess
             result = subprocess.run(
-                ['powershell', '-Command',
-                 'Get-PnpDevice -Class Camera -Status OK | Select-Object -ExpandProperty FriendlyName'],
-                capture_output=True, text=True, timeout=3
+                ["powershell", "-NoProfile", "-Command", ps_script],
+                capture_output=True, text=True, timeout=10
             )
-            names = [n.strip() for n in result.stdout.strip().split('\n') if n.strip()]
-            if index < len(names):
-                return names[index]
+            if result.returncode == 0 and result.stdout.strip():
+                data = json.loads(result.stdout.strip())
+                if not isinstance(data, list):
+                    data = [data]
+                names = []
+                for d in data:
+                    name = d.get("Name", "Unknown")
+                    names.append(name)
+                return names
         except Exception:
             pass
-        default_names = {0: 'HP True Vision FHD Camera', 1: 'Jabra USB Camera'}
-        return default_names.get(index, f'USB Camera ({index})')
+        return []
+
+    @staticmethod
+    def _get_camera_caps(source):
+        try:
+            cap = cv2.VideoCapture(source, cv2.CAP_DSHOW)
+            if cap.isOpened():
+                cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+                cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+                ret, frame = cap.read()
+                if ret:
+                    w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+                    h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+                    cap.release()
+                    return f'{w}x{h}'
+                cap.release()
+        except Exception:
+            pass
+        return None
 
     def list_cameras(self):
         cameras = []
-        for i in range(6):
-            try:
-                cap = cv2.VideoCapture(i, cv2.CAP_DSHOW)
-                if cap.isOpened():
-                    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-                    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
-                    ret, frame = cap.read()
-                    if ret:
-                        w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-                        h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-                        name = self._get_camera_name(i)
-                        cameras.append({'id': i, 'name': name, 'resolution': f'{w}x{h}'})
-                    cap.release()
-            except Exception:
-                pass
+        wmi_names = self._get_camera_names_windows()
+        probe_results = []
+        for i in range(10):
+            caps = self._get_camera_caps(i)
+            probe_results.append(caps)
+
+        for i, caps in enumerate(probe_results):
+            if caps:
+                name = wmi_names[i] if i < len(wmi_names) else f'USB Camera ({i})'
+                cameras.append({'id': i, 'name': name, 'resolution': caps})
+
         if not cameras:
-            cameras.append({'id': 0, 'name': 'HP True Vision FHD Camera', 'resolution': '640x480'})
+            cameras.append({'id': 0, 'name': 'Default Camera', 'resolution': '640x480'})
         return cameras
 
-    def start_camera(self, camera_id=0, mode='model'):
+    def start_camera(self, camera_id=0, mode='model_3class'):
         if self.cap is not None and self.cap.isOpened():
             return True
 
         self.camera_id = camera_id
         self.detection_mode = mode
+        self._init_model_config(mode)
         self.cap = cv2.VideoCapture(camera_id, cv2.CAP_DSHOW)
 
         if not self.cap.isOpened():
@@ -354,8 +405,7 @@ class APDDetector:
         self._capture_running = True
         self._capture_thread = threading.Thread(target=self._capture_loop, daemon=True)
         self._capture_thread.start()
-        mode_label = 'Algorithm' if mode == 'algorithm' else 'YOLO Model'
-        print(f"[APD] Camera {camera_id} started ({mode_label} mode, background capture)")
+        print(f"[APD] Camera {camera_id} started ({self._get_mode_label()})")
         return True
 
     def stop_camera(self):
@@ -405,11 +455,10 @@ class APDDetector:
         return jpeg, status
 
     def _handle_buzzer(self):
-        all_safe = all([
-            self.last_result['helm'],
-            self.last_result['sepatu'],
-            self.last_result['sarungtangan']
-        ])
+        items = self.last_result.get('items', {})
+        required_names = [self.class_names[c] for c in self.required_classes if c in self.class_names] if self.required_classes else list(items.keys())
+        required_items = {k: v for k, v in items.items() if k in required_names}
+        all_safe = all(required_items.values()) if required_items else False
 
         if all_safe and not self._safety_beep_given:
             self.buzzer.beep_once(1000, 200)
@@ -428,11 +477,10 @@ class APDDetector:
             self.buzzer.beep_once(1000, 300)
 
     def get_status(self):
-        all_safe = all([
-            self.last_result['helm'],
-            self.last_result['sepatu'],
-            self.last_result['sarungtangan']
-        ])
+        items = self.last_result.get('items', {})
+        required_names = [self.class_names[c] for c in self.required_classes if c in self.class_names] if self.required_classes else list(items.keys())
+        required_items = {k: v for k, v in items.items() if k in required_names}
+        all_safe = all(required_items.values()) if required_items else False
 
         if not self.is_running:
             indicator = 'kuning'
@@ -442,16 +490,15 @@ class APDDetector:
             indicator = 'merah'
 
         if self.detection_mode == 'algorithm':
-            mode_label = 'Algoritma CV (Tanpa Model)'
+            mode_label = 'Algoritma CV'
         elif self.models_loaded:
-            mode_label = 'YOLOv8 Custom APD (3-class)'
+            cfg = self.MODEL_CONFIGS.get(self.detection_mode, {})
+            mode_label = cfg.get('label', 'Model')
         else:
             mode_label = 'Tidak Aktif'
 
         return {
-            'helm': self.last_result['helm'],
-            'sepatu': self.last_result['sepatu'],
-            'sarungtangan': self.last_result['sarungtangan'],
+            'items': items,
             'status': 'Lengkap' if all_safe else 'Tidak Lengkap',
             'is_safe': all_safe,
             'indicator': indicator,
