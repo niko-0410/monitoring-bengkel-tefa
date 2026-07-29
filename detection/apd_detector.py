@@ -5,6 +5,7 @@ import os
 import time
 import threading
 import sys
+import traceback
 
 if sys.platform == 'win32':
     import winsound
@@ -421,22 +422,28 @@ class APDDetector:
 
     def _capture_loop(self):
         while self._capture_running and self.cap is not None:
-            ret, frame = self.cap.read()
-            if not ret:
-                time.sleep(0.01)
-                continue
+            try:
+                ret, frame = self.cap.read()
+                if not ret:
+                    time.sleep(0.01)
+                    continue
 
-            if self.detection_mode == 'algorithm':
-                result = self._detect_algorithm(frame)
-            elif self.model is not None:
-                result = self._detect_model(frame)
-            else:
-                result = {'frame': frame, 'result': self.last_result}
+                if self.detection_mode == 'algorithm':
+                    result = self._detect_algorithm(frame)
+                elif self.model is not None:
+                    result = self._detect_model(frame)
+                else:
+                    result = {'frame': frame, 'result': self.last_result}
 
-            _, jpeg = cv2.imencode('.jpg', result['frame'], [cv2.IMWRITE_JPEG_QUALITY, 80])
-            with self._frame_lock:
-                self._latest_jpeg = jpeg.tobytes()
-                self._latest_status = result['result']
+                _, jpeg = cv2.imencode('.jpg', result['frame'], [cv2.IMWRITE_JPEG_QUALITY, 80])
+                with self._frame_lock:
+                    self._latest_jpeg = jpeg.tobytes()
+                    self._latest_status = result['result']
+            except Exception as e:
+                print(f"[APD] Capture loop error: {e}")
+                import traceback
+                traceback.print_exc()
+                time.sleep(0.1)
 
     def detect(self):
         if not self.is_running:
@@ -477,6 +484,7 @@ class APDDetector:
             self.buzzer.beep_once(1000, 300)
 
     def get_status(self):
+        self.detect()
         items = self.last_result.get('items', {})
         required_names = [self.class_names[c] for c in self.required_classes if c in self.class_names] if self.required_classes else list(items.keys())
         required_items = {k: v for k, v in items.items() if k in required_names}
