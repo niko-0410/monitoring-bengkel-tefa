@@ -5,6 +5,7 @@ __pycache__/
 data/
 *.db
 debug_frame_*.jpg
+test_*.py
 runs/
 models/*.pt
 models/train/

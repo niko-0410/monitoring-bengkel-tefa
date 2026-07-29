@@ -1,0 +1,13 @@
+train: ./train/images
+val: ./valid/images
+test: ./test/images
+
+nc: 3
+names: ['Helm Safety', 'sarung tangan safety', 'sepatu safety']
+
+roboflow:
+  workspace: nikos-workspace-bpowq
+  project: projek-ta-bbomh
+  version: dataset
+  license: CC BY 4.0
+  url: https://universe.roboflow.com/nikos-workspace-bpowq/projek-ta-bbomh/dataset/dataset

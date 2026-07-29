@@ -29,8 +29,13 @@ def index():
 def apd_start():
     data = request.json or {}
     camera_id = data.get('camera_id', 0)
-    if apd_detector.load_model() and apd_detector.start_camera(camera_id):
-        return jsonify({'success': True, 'message': f'Kamera {camera_id} aktif (buzzer bawaan)'})
+    mode = data.get('mode', 'model')
+    if mode == 'model':
+        if not apd_detector.load_model():
+            return jsonify({'success': False, 'message': 'Gagal load model YOLO'}), 500
+    if apd_detector.start_camera(camera_id, mode=mode):
+        mode_label = 'Algoritma' if mode == 'algorithm' else 'YOLO Model'
+        return jsonify({'success': True, 'message': f'Kamera {camera_id} aktif ({mode_label})'})
     return jsonify({'success': False, 'message': 'Gagal mengakses kamera'}), 500
 
 

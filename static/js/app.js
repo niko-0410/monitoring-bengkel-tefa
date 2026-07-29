@@ -67,10 +67,11 @@ const App = {
     async startAPD() {
         try {
             const cameraId = parseInt(document.getElementById('apd-camera-select').value) || 0;
+            const mode = document.getElementById('apd-mode-select').value;
             const res = await fetch('/api/apd/start', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ camera_id: cameraId })
+                body: JSON.stringify({ camera_id: cameraId, mode: mode })
             });
             const data = await res.json();
             if (data.success) {
@@ -78,8 +79,9 @@ const App = {
                 document.getElementById('apd-overlay').classList.add('hidden');
                 document.getElementById('btn-start-apd').disabled = true;
                 document.getElementById('btn-stop-apd').disabled = false;
+                document.getElementById('apd-mode-select').disabled = true;
                 this.apdPolling = setInterval(() => this.pollAPDStatus(), 1000);
-                this.showToast(`Kamera ${cameraId} aktif (buzzer bawaan)`, 'success');
+                this.showToast(data.message, 'success');
                 this.loadCameras();
             } else {
                 this.showToast(data.message, 'error');
@@ -95,6 +97,7 @@ const App = {
         document.getElementById('apd-overlay').classList.remove('hidden');
         document.getElementById('btn-start-apd').disabled = false;
         document.getElementById('btn-stop-apd').disabled = true;
+        document.getElementById('apd-mode-select').disabled = false;
         if (this.apdPolling) { clearInterval(this.apdPolling); this.apdPolling = null; }
         this.resetAPDUI();
         this.showToast('Kamera APD dihentikan', 'info');
